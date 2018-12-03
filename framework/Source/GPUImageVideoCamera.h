@@ -11,11 +11,15 @@ void setColorConversion601FullRange( GLfloat conversionMatrix[9] );
 void setColorConversion709( GLfloat conversionMatrix[9] );
 
 
-//Delegate Protocal for Face Detection.
 @protocol GPUImageVideoCameraDelegate <NSObject>
 
-@optional
-- (void)willOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer;
+/// This is called before any processing, on the calling thread. Useful if you just want to write the raw video/audio received directly to file
+- (void)didReceiveAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer;
+/// This is called before any processing, on the calling thread. Useful if you just want to write the raw video/audio received directly to file
+- (void)didReceiveVideoSampleBuffer:(CMSampleBufferRef)sampleBuffer;
+/// This can be used as a feature detection hook. It's called right before the buffer is processed, on the video processing queue
+- (void)willOutputVideoSampleBuffer:(CMSampleBufferRef)sampleBuffer;
+
 @end
 
 

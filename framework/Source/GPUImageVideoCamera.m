@@ -874,25 +874,25 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     {
         return;
     }
-    else if (captureOutput == audioOutput)
+    
+    if (captureOutput == audioOutput)
     {
+        [self.delegate didReceiveAudioSampleBuffer:sampleBuffer];
         [self processAudioSampleBuffer:sampleBuffer];
     }
     else
     {
+        [self.delegate didReceiveVideoSampleBuffer:sampleBuffer];
+        
         if (dispatch_semaphore_wait(frameRenderingSemaphore, DISPATCH_TIME_NOW) != 0)
         {
             return;
         }
         
         CFRetain(sampleBuffer);
-        runAsynchronouslyOnVideoProcessingQueue(^{
-            //Feature Detection Hook.
-            if (self.delegate)
-            {
-                [self.delegate willOutputSampleBuffer:sampleBuffer];
-            }
-            
+        runAsynchronouslyOnVideoProcessingQueue(^
+        {
+            [self.delegate willOutputVideoSampleBuffer:sampleBuffer];
             [self processVideoSampleBuffer:sampleBuffer];
             
             CFRelease(sampleBuffer);
