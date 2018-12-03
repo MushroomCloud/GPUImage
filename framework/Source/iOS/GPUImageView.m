@@ -231,19 +231,18 @@
 #pragma mark -
 #pragma mark Handling fill mode
 
-- (void)recalculateViewGeometry;
+- (void)recalculateViewGeometry
 {
-    __block CGSize currentViewSize = CGSizeZero;
-    runOnMainQueueWithoutDeadlocking(^{ currentViewSize = self.bounds.size; });
-    
     typeof(self) __strong strongself = self;
-    runSynchronouslyOnVideoProcessingQueue(^{
+    runSynchronouslyOnVideoProcessingQueue(^
+    {
+        __block CGRect bounds = CGRectZero;
+        runOnMainQueueWithoutDeadlocking(^{ bounds = self.bounds; });
+        
         CGFloat heightScaling, widthScaling;
+        CGSize currentViewSize = bounds.size;
         
-        //    CGFloat imageAspectRatio = inputImageSize.width / inputImageSize.height;
-        //    CGFloat viewAspectRatio = currentViewSize.width / currentViewSize.height;
-        
-        CGRect insetRect = AVMakeRectWithAspectRatioInsideRect(strongself->inputImageSize, self.bounds);
+        CGRect insetRect = AVMakeRectWithAspectRatioInsideRect(strongself->inputImageSize, bounds);
         
         switch(strongself->_fillMode)
         {
