@@ -8,7 +8,7 @@
 #pragma mark -
 #pragma mark Private methods and instance variables
 
-@interface GPUImageView () 
+@interface GPUImageView ()
 {
     GPUImageFramebuffer *inputFramebufferForDisplay;
     GLuint displayRenderbuffer, displayFramebuffer;
@@ -23,6 +23,12 @@
 
     CGSize boundsSizeAtFrameBufferEpoch;
 }
+
+/**
+ This is updated on view creation, and in -layoutSubviews. It allows the bounds property to be accessed off the main thread, without causing a deadlock
+ */
+@property (nonatomic, assign) CGRect cachedBounds;
+@property (nonatomic, readonly) id cachedBoundsLock;
 
 @property (assign, nonatomic) NSUInteger aspectRatio;
 
@@ -48,7 +54,7 @@
 #pragma mark -
 #pragma mark Initialization and teardown
 
-+ (Class)layerClass 
++ (Class)layerClass
 {
 	return [CAEAGLLayer class];
 }
@@ -67,7 +73,7 @@
 
 -(id)initWithCoder:(NSCoder *)coder
 {
-	if (!(self = [super initWithCoder:coder])) 
+	if (!(self = [super initWithCoder:coder]))
     {
         return nil;
 	}
@@ -77,9 +83,12 @@
 	return self;
 }
 
-- (void)commonInit;
+- (void)commonInit
 {
-    // Set scaling to account for Retina display	
+    _cachedBoundsLock = [NSObject new];
+    _cachedBounds = self.bounds;
+    
+    // Set scaling to account for Retina display
     if ([self respondsToSelector:@selector(setContentScaleFactor:)])
     {
         self.contentScaleFactor = [[UIScreen mainScreen] scale];
@@ -131,17 +140,26 @@
     });
 }
 
-- (void)layoutSubviews {
+- (void)layoutSubviews
+{
     [super layoutSubviews];
+    @synchronized (self.cachedBoundsLock)
+    {
+        self.cachedBounds = self.bounds;
+    }
     
     // The frame buffer needs to be trashed and re-created when the view size changes.
     if (!CGSizeEqualToSize(self.bounds.size, boundsSizeAtFrameBufferEpoch) &&
-        !CGSizeEqualToSize(self.bounds.size, CGSizeZero)) {
-        runSynchronouslyOnVideoProcessingQueue(^{
+        !CGSizeEqualToSize(self.bounds.size, CGSizeZero))
+    {
+        runSynchronouslyOnVideoProcessingQueue(^
+        {
             [self destroyDisplayFramebuffer];
             [self createDisplayFramebuffer];
         });
-    } else if (!CGSizeEqualToSize(self.bounds.size, CGSizeZero)) {
+    }
+    else if (!CGSizeEqualToSize(self.bounds.size, CGSizeZero))
+    {
         [self recalculateViewGeometry];
     }
 }
@@ -156,7 +174,7 @@
 #pragma mark -
 #pragma mark Managing the display FBOs
 
-- (void)createDisplayFramebuffer;
+- (void)createDisplayFramebuffer
 {
     [GPUImageContext useImageProcessingContext];
     
@@ -193,7 +211,7 @@
     [self recalculateViewGeometry];
 }
 
-- (void)destroyDisplayFramebuffer;
+- (void)destroyDisplayFramebuffer
 {
     [GPUImageContext useImageProcessingContext];
 
@@ -210,7 +228,7 @@
 	}
 }
 
-- (void)setDisplayFramebuffer;
+- (void)setDisplayFramebuffer
 {
     if (!displayFramebuffer)
     {
@@ -222,7 +240,7 @@
     glViewport(0, 0, (GLint)_sizeInPixels.width, (GLint)_sizeInPixels.height);
 }
 
-- (void)presentFramebuffer;
+- (void)presentFramebuffer
 {
     glBindRenderbuffer(GL_RENDERBUFFER, displayRenderbuffer);
     [[GPUImageContext sharedImageProcessingContext] presentBufferForDisplay];
@@ -233,12 +251,21 @@
 
 - (void)recalculateViewGeometry
 {
+    CGRect bounds = CGRectZero;
+    @synchronized (self.cachedBoundsLock)
+    {
+        // This method can be called off the main thread, but the bounds
+        // can't be accessed off the main thread. If we dispatch to the
+        // main thread now, it could cause a deadlock, so just use the
+        // cached bounds. If/when the bounds change again, the
+        // -layoutSubviews method will be called, which will update the
+        // cached bounds, and call this method again
+        bounds = self.cachedBounds;
+    }
+    
     typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^
     {
-        __block CGRect bounds = CGRectZero;
-        runOnMainQueueWithoutDeadlocking(^{ bounds = self.bounds; });
-        
         CGFloat heightScaling, widthScaling;
         CGSize currentViewSize = bounds.size;
         
@@ -273,16 +300,9 @@
         strongself->imageVertices[6] = widthScaling;
         strongself->imageVertices[7] = heightScaling;
     });
-    
-//    static const GLfloat imageVertices[] = {
-//        -1.0f, -1.0f,
-//        1.0f, -1.0f,
-//        -1.0f,  1.0f,
-//        1.0f,  1.0f,
-//    };
 }
 
-- (void)setBackgroundColorRed:(GLfloat)redComponent green:(GLfloat)greenComponent blue:(GLfloat)blueComponent alpha:(GLfloat)alphaComponent;
+- (void)setBackgroundColorRed:(GLfloat)redComponent green:(GLfloat)greenComponent blue:(GLfloat)blueComponent alpha:(GLfloat)alphaComponent
 {
     backgroundColorRed = redComponent;
     backgroundColorGreen = greenComponent;
@@ -290,15 +310,8 @@
     backgroundColorAlpha = alphaComponent;
 }
 
-+ (const GLfloat *)textureCoordinatesForRotation:(GPUImageRotationMode)rotationMode;
++ (const GLfloat *)textureCoordinatesForRotation:(GPUImageRotationMode)rotationMode
 {
-//    static const GLfloat noRotationTextureCoordinates[] = {
-//        0.0f, 0.0f,
-//        1.0f, 0.0f,
-//        0.0f, 1.0f,
-//        1.0f, 1.0f,
-//    };
-    
     static const GLfloat noRotationTextureCoordinates[] = {
         0.0f, 1.0f,
         1.0f, 1.0f,
@@ -319,7 +332,7 @@
         1.0f, 0.0f,
         1.0f, 1.0f,
     };
-        
+    
     static const GLfloat verticalFlipTextureCoordinates[] = {
         0.0f, 0.0f,
         1.0f, 0.0f,
@@ -371,7 +384,7 @@
 #pragma mark -
 #pragma mark GPUInput protocol
 
-- (void)newFrameReadyAtTime:(CMTime)frameTime atIndex:(NSInteger)textureIndex;
+- (void)newFrameReadyAtTime:(CMTime)frameTime atIndex:(NSInteger)textureIndex
 {
     typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
@@ -396,23 +409,23 @@
     });
 }
 
-- (NSInteger)nextAvailableTextureIndex;
+- (NSInteger)nextAvailableTextureIndex
 {
     return 0;
 }
 
-- (void)setInputFramebuffer:(GPUImageFramebuffer *)newInputFramebuffer atIndex:(NSInteger)textureIndex;
+- (void)setInputFramebuffer:(GPUImageFramebuffer *)newInputFramebuffer atIndex:(NSInteger)textureIndex
 {
     inputFramebufferForDisplay = newInputFramebuffer;
     [inputFramebufferForDisplay lock];
 }
 
-- (void)setInputRotation:(GPUImageRotationMode)newInputRotation atIndex:(NSInteger)textureIndex;
+- (void)setInputRotation:(GPUImageRotationMode)newInputRotation atIndex:(NSInteger)textureIndex
 {
     inputRotation = newInputRotation;
 }
 
-- (void)setInputSize:(CGSize)newSize atIndex:(NSInteger)textureIndex;
+- (void)setInputSize:(CGSize)newSize atIndex:(NSInteger)textureIndex
 {
     typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
@@ -432,7 +445,7 @@
     });
 }
 
-- (CGSize)maximumOutputSize;
+- (CGSize)maximumOutputSize
 {
     if ([self respondsToSelector:@selector(setContentScaleFactor:)])
     {
@@ -449,17 +462,17 @@
 {
 }
 
-- (BOOL)shouldIgnoreUpdatesToThisTarget;
+- (BOOL)shouldIgnoreUpdatesToThisTarget
 {
     return NO;
 }
 
-- (BOOL)wantsMonochromeInput;
+- (BOOL)wantsMonochromeInput
 {
     return NO;
 }
 
-- (void)setCurrentlyReceivingMonochromeInput:(BOOL)newValue;
+- (void)setCurrentlyReceivingMonochromeInput:(BOOL)newValue
 {
     
 }
@@ -467,7 +480,7 @@
 #pragma mark -
 #pragma mark Accessors
 
-- (CGSize)sizeInPixels;
+- (CGSize)sizeInPixels
 {
     if (CGSizeEqualToSize(_sizeInPixels, CGSizeZero))
     {
@@ -479,7 +492,7 @@
     }
 }
 
-- (void)setFillMode:(GPUImageFillModeType)newValue;
+- (void)setFillMode:(GPUImageFillModeType)newValue
 {
     _fillMode = newValue;
     [self recalculateViewGeometry];
