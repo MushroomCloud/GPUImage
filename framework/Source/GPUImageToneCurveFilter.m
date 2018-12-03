@@ -229,14 +229,15 @@ NSString *const kGPUImageToneCurveFragmentShaderString = SHADER_STRING
 
 - (void)dealloc
 {
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
 
-        if (toneCurveTexture)
+        if (strongself->toneCurveTexture)
         {
-            glDeleteTextures(1, &toneCurveTexture);
-            toneCurveTexture = 0;
-            free(toneCurveByteArray);
+            glDeleteTextures(1, &strongself->toneCurveTexture);
+            strongself->toneCurveTexture = 0;
+            free(strongself->toneCurveByteArray);
         }
     });
 }
@@ -485,41 +486,45 @@ NSString *const kGPUImageToneCurveFragmentShaderString = SHADER_STRING
 
 - (void)updateToneCurveTexture;
 {
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
-        if (!toneCurveTexture)
+        if (!strongself->toneCurveTexture)
         {
             glActiveTexture(GL_TEXTURE3);
-            glGenTextures(1, &toneCurveTexture);
-            glBindTexture(GL_TEXTURE_2D, toneCurveTexture);
+            glGenTextures(1, &strongself->toneCurveTexture);
+            glBindTexture(GL_TEXTURE_2D, strongself->toneCurveTexture);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             
-            toneCurveByteArray = calloc(256 * 4, sizeof(GLubyte));
+            strongself->toneCurveByteArray = calloc(256 * 4, sizeof(GLubyte));
         }
         else
         {
             glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, toneCurveTexture);
+            glBindTexture(GL_TEXTURE_2D, strongself->toneCurveTexture);
         }
         
-        if ( ([_redCurve count] >= 256) && ([_greenCurve count] >= 256) && ([_blueCurve count] >= 256) && ([_rgbCompositeCurve count] >= 256))
+        if (([strongself->_redCurve count] >= 256) &&
+            ([strongself->_greenCurve count] >= 256) &&
+            ([strongself->_blueCurve count] >= 256) &&
+            ([strongself->_rgbCompositeCurve count] >= 256))
         {
             for (unsigned int currentCurveIndex = 0; currentCurveIndex < 256; currentCurveIndex++)
             {
                 // BGRA for upload to texture
-                GLubyte b = fmin(fmax(currentCurveIndex + [[_blueCurve objectAtIndex:currentCurveIndex] floatValue], 0), 255);
-                toneCurveByteArray[currentCurveIndex * 4] = fmin(fmax(b + [[_rgbCompositeCurve objectAtIndex:b] floatValue], 0), 255);
-                GLubyte g = fmin(fmax(currentCurveIndex + [[_greenCurve objectAtIndex:currentCurveIndex] floatValue], 0), 255);
-                toneCurveByteArray[currentCurveIndex * 4 + 1] = fmin(fmax(g + [[_rgbCompositeCurve objectAtIndex:g] floatValue], 0), 255);
-                GLubyte r = fmin(fmax(currentCurveIndex + [[_redCurve objectAtIndex:currentCurveIndex] floatValue], 0), 255);
-                toneCurveByteArray[currentCurveIndex * 4 + 2] = fmin(fmax(r + [[_rgbCompositeCurve objectAtIndex:r] floatValue], 0), 255);
-                toneCurveByteArray[currentCurveIndex * 4 + 3] = 255;
+                GLubyte b = fmin(fmax(currentCurveIndex + [[strongself->_blueCurve objectAtIndex:currentCurveIndex] floatValue], 0), 255);
+                strongself->toneCurveByteArray[currentCurveIndex * 4] = fmin(fmax(b + [[strongself->_rgbCompositeCurve objectAtIndex:b] floatValue], 0), 255);
+                GLubyte g = fmin(fmax(currentCurveIndex + [[strongself->_greenCurve objectAtIndex:currentCurveIndex] floatValue], 0), 255);
+                strongself->toneCurveByteArray[currentCurveIndex * 4 + 1] = fmin(fmax(g + [[strongself->_rgbCompositeCurve objectAtIndex:g] floatValue], 0), 255);
+                GLubyte r = fmin(fmax(currentCurveIndex + [[strongself->_redCurve objectAtIndex:currentCurveIndex] floatValue], 0), 255);
+                strongself->toneCurveByteArray[currentCurveIndex * 4 + 2] = fmin(fmax(r + [[strongself->_rgbCompositeCurve objectAtIndex:r] floatValue], 0), 255);
+                strongself->toneCurveByteArray[currentCurveIndex * 4 + 3] = 255;
             }
             
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256 /*width*/, 1 /*height*/, 0, GL_BGRA, GL_UNSIGNED_BYTE, toneCurveByteArray);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256 /*width*/, 1 /*height*/, 0, GL_BGRA, GL_UNSIGNED_BYTE, strongself->toneCurveByteArray);
         }        
     });
 }

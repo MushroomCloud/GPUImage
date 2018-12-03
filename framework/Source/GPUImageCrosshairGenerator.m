@@ -70,12 +70,13 @@ NSString *const kGPUImageCrosshairFragmentShaderString = SHADER_STRING
         return nil;
     }
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        crosshairWidthUniform = [filterProgram uniformIndex:@"crosshairWidth"];
-        crosshairColorUniform = [filterProgram uniformIndex:@"crosshairColor"];
+        strongself->crosshairWidthUniform = [strongself->filterProgram uniformIndex:@"crosshairWidth"];
+        strongself->crosshairColorUniform = [strongself->filterProgram uniformIndex:@"crosshairColor"];
         
-        self.crosshairWidth = 5.0;
-        [self setCrosshairColorRed:0.0 green:1.0 blue:0.0];
+        strongself.crosshairWidth = 5.0;
+        [strongself setCrosshairColorRed:0.0 green:1.0 blue:0.0];
     });
     
     return self;
@@ -91,8 +92,9 @@ NSString *const kGPUImageCrosshairFragmentShaderString = SHADER_STRING
         return;
     }
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        [GPUImageContext setActiveShaderProgram:filterProgram];
+        [GPUImageContext setActiveShaderProgram:strongself->filterProgram];
         
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
 #else
@@ -100,17 +102,17 @@ NSString *const kGPUImageCrosshairFragmentShaderString = SHADER_STRING
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 #endif
         
-        outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:[self sizeOfFBO] textureOptions:self.outputTextureOptions onlyTexture:NO];
-        [outputFramebuffer activateFramebuffer];
+        strongself->outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:[strongself sizeOfFBO] textureOptions:strongself.outputTextureOptions onlyTexture:NO];
+        [strongself->outputFramebuffer activateFramebuffer];
         
         glClearColor(0.0, 0.0, 0.0, 0.0);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        glVertexAttribPointer(filterPositionAttribute, 2, GL_FLOAT, 0, 0, crosshairCoordinates);
+        glVertexAttribPointer(strongself->filterPositionAttribute, 2, GL_FLOAT, 0, 0, crosshairCoordinates);
         
         glDrawArrays(GL_POINTS, 0, (GLsizei)numberOfCrosshairs);
         
-        [self informTargetsAboutNewFrameAtTime:frameTime];
+        [strongself informTargetsAboutNewFrameAtTime:frameTime];
     });
 }
 

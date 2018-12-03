@@ -75,11 +75,12 @@
         imageData = (GLubyte *)CFDataGetBytePtr(dataFromImageDataProvider);
     }
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
-        [outputFramebuffer disableReferenceCounting];
+        [strongself->outputFramebuffer disableReferenceCounting];
         
-        glBindTexture(GL_TEXTURE_2D, [outputFramebuffer texture]);
+        glBindTexture(GL_TEXTURE_2D, [strongself->outputFramebuffer texture]);
         
         // no need to use self.outputTextureOptions here since pictures need this texture formats and type
         glTexSubImage2D(GL_TEXTURE_2D, 0, subRect.origin.x, subRect.origin.y, (GLint)subRect.size.width, subRect.size.height, GL_RGBA, GL_UNSIGNED_BYTE, imageData);

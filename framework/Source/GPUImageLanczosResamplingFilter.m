@@ -143,21 +143,22 @@ NSString *const kGPUImageLanczosFragmentShaderString = SHADER_STRING
 
 - (void)setupFilterForSize:(CGSize)filterFrameSize;
 {
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         // The first pass through the framebuffer may rotate the inbound image, so need to account for that by changing up the kernel ordering for that pass
-        if (GPUImageRotationSwapsWidthAndHeight(inputRotation))
+        if (GPUImageRotationSwapsWidthAndHeight(strongself->inputRotation))
         {
-            verticalPassTexelWidthOffset = 1.0 / _originalImageSize.height;
-            verticalPassTexelHeightOffset = 0.0;
+            strongself->verticalPassTexelWidthOffset = 1.0 / strongself->_originalImageSize.height;
+            strongself->verticalPassTexelHeightOffset = 0.0;
         }
         else
         {
-            verticalPassTexelWidthOffset = 0.0;
-            verticalPassTexelHeightOffset = 1.0 / _originalImageSize.height;
+            strongself->verticalPassTexelWidthOffset = 0.0;
+            strongself->verticalPassTexelHeightOffset = 1.0 / strongself->_originalImageSize.height;
         }
         
-        horizontalPassTexelWidthOffset = 1.0 / _originalImageSize.width;
-        horizontalPassTexelHeightOffset = 0.0;
+        strongself->horizontalPassTexelWidthOffset = 1.0 / strongself->_originalImageSize.width;
+        strongself->horizontalPassTexelHeightOffset = 0.0;
     });
 }
 

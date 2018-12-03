@@ -15,14 +15,15 @@
 		return nil;
     }
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
 
-        verticalPassTexelWidthOffsetUniform = [filterProgram uniformIndex:@"texelWidthOffset"];
-        verticalPassTexelHeightOffsetUniform = [filterProgram uniformIndex:@"texelHeightOffset"];
+        strongself->verticalPassTexelWidthOffsetUniform = [strongself->filterProgram uniformIndex:@"texelWidthOffset"];
+        strongself->verticalPassTexelHeightOffsetUniform = [strongself->filterProgram uniformIndex:@"texelHeightOffset"];
         
-        horizontalPassTexelWidthOffsetUniform = [secondFilterProgram uniformIndex:@"texelWidthOffset"];
-        horizontalPassTexelHeightOffsetUniform = [secondFilterProgram uniformIndex:@"texelHeightOffset"];
+        strongself->horizontalPassTexelWidthOffsetUniform = [strongself->secondFilterProgram uniformIndex:@"texelWidthOffset"];
+        strongself->horizontalPassTexelHeightOffsetUniform = [strongself->secondFilterProgram uniformIndex:@"texelHeightOffset"];
     });
     
     self.verticalTexelSpacing = 1.0;
@@ -49,21 +50,22 @@
 
 - (void)setupFilterForSize:(CGSize)filterFrameSize;
 {
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         // The first pass through the framebuffer may rotate the inbound image, so need to account for that by changing up the kernel ordering for that pass
-        if (GPUImageRotationSwapsWidthAndHeight(inputRotation))
+        if (GPUImageRotationSwapsWidthAndHeight(strongself->inputRotation))
         {
-            verticalPassTexelWidthOffset = _verticalTexelSpacing / filterFrameSize.height;
-            verticalPassTexelHeightOffset = 0.0;
+            strongself->verticalPassTexelWidthOffset = strongself->_verticalTexelSpacing / filterFrameSize.height;
+            strongself->verticalPassTexelHeightOffset = 0.0;
         }
         else
         {
-            verticalPassTexelWidthOffset = 0.0;
-            verticalPassTexelHeightOffset = _verticalTexelSpacing / filterFrameSize.height;
+            strongself->verticalPassTexelWidthOffset = 0.0;
+            strongself->verticalPassTexelHeightOffset = strongself->_verticalTexelSpacing / filterFrameSize.height;
         }
         
-        horizontalPassTexelWidthOffset = _horizontalTexelSpacing / filterFrameSize.width;
-        horizontalPassTexelHeightOffset = 0.0;
+        strongself->horizontalPassTexelWidthOffset = strongself->_horizontalTexelSpacing / filterFrameSize.width;
+        strongself->horizontalPassTexelHeightOffset = 0.0;
     });
 }
 

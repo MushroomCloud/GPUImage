@@ -246,21 +246,22 @@
     //
     //    NSLog(@"Debug, average input image red: %f, green: %f, blue: %f, alpha: %f", currentRedTotal / (CGFloat)totalNumberOfPixels, currentGreenTotal / (CGFloat)totalNumberOfPixels, currentBlueTotal / (CGFloat)totalNumberOfPixels, currentAlphaTotal / (CGFloat)totalNumberOfPixels);
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
         
-        outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:pixelSizeToUseForTexture onlyTexture:YES];
-        [outputFramebuffer disableReferenceCounting];
+        strongself->outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:pixelSizeToUseForTexture onlyTexture:YES];
+        [strongself->outputFramebuffer disableReferenceCounting];
 
-        glBindTexture(GL_TEXTURE_2D, [outputFramebuffer texture]);
-        if (self.shouldSmoothlyScaleOutput)
+        glBindTexture(GL_TEXTURE_2D, [strongself->outputFramebuffer texture]);
+        if (strongself.shouldSmoothlyScaleOutput)
         {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         }
         // no need to use self.outputTextureOptions here since pictures need this texture formats and type
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)pixelSizeToUseForTexture.width, (int)pixelSizeToUseForTexture.height, 0, format, GL_UNSIGNED_BYTE, imageData);
         
-        if (self.shouldSmoothlyScaleOutput)
+        if (strongself.shouldSmoothlyScaleOutput)
         {
             glGenerateMipmap(GL_TEXTURE_2D);
         }
@@ -321,19 +322,20 @@
         return NO;
     }
     
+    typeof(self) __strong strongself = self;
     runAsynchronouslyOnVideoProcessingQueue(^{        
-        for (id<GPUImageInput> currentTarget in targets)
+        for (id<GPUImageInput> currentTarget in strongself->targets)
         {
-            NSInteger indexOfObject = [targets indexOfObject:currentTarget];
-            NSInteger textureIndexOfTarget = [[targetTextureIndices objectAtIndex:indexOfObject] integerValue];
+            NSInteger indexOfObject = [strongself->targets indexOfObject:currentTarget];
+            NSInteger textureIndexOfTarget = [[strongself->targetTextureIndices objectAtIndex:indexOfObject] integerValue];
             
             [currentTarget setCurrentlyReceivingMonochromeInput:NO];
-            [currentTarget setInputSize:pixelSizeOfImage atIndex:textureIndexOfTarget];
-            [currentTarget setInputFramebuffer:outputFramebuffer atIndex:textureIndexOfTarget];
+            [currentTarget setInputSize:strongself->pixelSizeOfImage atIndex:textureIndexOfTarget];
+            [currentTarget setInputFramebuffer:strongself->outputFramebuffer atIndex:textureIndexOfTarget];
             [currentTarget newFrameReadyAtTime:kCMTimeIndefinite atIndex:textureIndexOfTarget];
         }
         
-        dispatch_semaphore_signal(imageUpdateSemaphore);
+        dispatch_semaphore_signal(strongself->imageUpdateSemaphore);
         
         if (completion != nil) {
             completion();

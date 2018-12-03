@@ -223,12 +223,14 @@ void reportAvailableMemoryForGPUImage(NSString *tag)
     }
     
     cachedMaximumOutputSize = CGSizeZero;
+    
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        [self setInputFramebufferForTarget:newTarget atIndex:textureLocation];
-        [targets addObject:newTarget];
-        [targetTextureIndices addObject:[NSNumber numberWithInteger:textureLocation]];
+        [strongself setInputFramebufferForTarget:newTarget atIndex:textureLocation];
+        [strongself->targets addObject:newTarget];
+        [strongself->targetTextureIndices addObject:[NSNumber numberWithInteger:textureLocation]];
         
-        allTargetsWantMonochromeData = allTargetsWantMonochromeData && [newTarget wantsMonochromeInput];
+        strongself->allTargetsWantMonochromeData = strongself->allTargetsWantMonochromeData && [newTarget wantsMonochromeInput];
     });
 }
 
@@ -249,12 +251,13 @@ void reportAvailableMemoryForGPUImage(NSString *tag)
     NSInteger indexOfObject = [targets indexOfObject:targetToRemove];
     NSInteger textureIndexOfTarget = [[targetTextureIndices objectAtIndex:indexOfObject] integerValue];
 
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [targetToRemove setInputSize:CGSizeZero atIndex:textureIndexOfTarget];
 		[targetToRemove setInputRotation:kGPUImageNoRotation atIndex:textureIndexOfTarget];
 
-        [targetTextureIndices removeObjectAtIndex:indexOfObject];
-        [targets removeObject:targetToRemove];
+        [strongself->targetTextureIndices removeObjectAtIndex:indexOfObject];
+        [strongself->targets removeObject:targetToRemove];
         [targetToRemove endProcessing];
     });
 }
@@ -262,19 +265,20 @@ void reportAvailableMemoryForGPUImage(NSString *tag)
 - (void)removeAllTargets;
 {
     cachedMaximumOutputSize = CGSizeZero;
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        for (id<GPUImageInput> targetToRemove in targets)
+        for (id<GPUImageInput> targetToRemove in strongself->targets)
         {
-            NSInteger indexOfObject = [targets indexOfObject:targetToRemove];
-            NSInteger textureIndexOfTarget = [[targetTextureIndices objectAtIndex:indexOfObject] integerValue];
+            NSInteger indexOfObject = [strongself->targets indexOfObject:targetToRemove];
+            NSInteger textureIndexOfTarget = [[strongself->targetTextureIndices objectAtIndex:indexOfObject] integerValue];
             
             [targetToRemove setInputSize:CGSizeZero atIndex:textureIndexOfTarget];
             [targetToRemove setInputRotation:kGPUImageNoRotation atIndex:textureIndexOfTarget];
         }
-        [targets removeAllObjects];
-        [targetTextureIndices removeAllObjects];
+        [strongself->targets removeAllObjects];
+        [strongself->targetTextureIndices removeAllObjects];
         
-        allTargetsWantMonochromeData = YES;
+        strongself->allTargetsWantMonochromeData = YES;
     });
 }
 

@@ -53,13 +53,14 @@ NSString *const kGPUImageTwoInputTextureVertexShaderString = SHADER_STRING
     
     firstFrameTime = kCMTimeInvalid;
     secondFrameTime = kCMTimeInvalid;
-        
+    
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
-        filterSecondTextureCoordinateAttribute = [filterProgram attributeIndex:@"inputTextureCoordinate2"];
+        strongself->filterSecondTextureCoordinateAttribute = [strongself->filterProgram attributeIndex:@"inputTextureCoordinate2"];
         
-        filterInputTextureUniform2 = [filterProgram uniformIndex:@"inputImageTexture2"]; // This does assume a name of "inputImageTexture2" for second input texture in the fragment shader
-        glEnableVertexAttribArray(filterSecondTextureCoordinateAttribute);
+        strongself->filterInputTextureUniform2 = [strongself->filterProgram uniformIndex:@"inputImageTexture2"]; // This does assume a name of "inputImageTexture2" for second input texture in the fragment shader
+        glEnableVertexAttribArray(strongself->filterSecondTextureCoordinateAttribute);
     });
     
     return self;

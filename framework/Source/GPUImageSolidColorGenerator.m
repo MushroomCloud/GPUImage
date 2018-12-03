@@ -59,13 +59,17 @@ NSString *const kGPUSolidColorFragmentShaderString = SHADER_STRING
         return;
     }
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        [GPUImageContext setActiveShaderProgram:filterProgram];
+        [GPUImageContext setActiveShaderProgram:strongself->filterProgram];
         
-        outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:[self sizeOfFBO] textureOptions:self.outputTextureOptions onlyTexture:NO];
-        [outputFramebuffer activateFramebuffer];
+        strongself->outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:[strongself sizeOfFBO] textureOptions:strongself.outputTextureOptions onlyTexture:NO];
+        [strongself->outputFramebuffer activateFramebuffer];
         
-        glClearColor(_color.one, _color.two, _color.three, _color.four);
+        glClearColor(strongself->_color.one,
+                     strongself->_color.two,
+                     strongself->_color.three,
+                     strongself->_color.four);
         glClear(GL_COLOR_BUFFER_BIT);
     });
 }

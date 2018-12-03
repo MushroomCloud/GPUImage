@@ -73,36 +73,37 @@ NSString *const kGPUImagePassthroughFragmentShaderString = SHADER_STRING
     imageCaptureSemaphore = dispatch_semaphore_create(0);
     dispatch_semaphore_signal(imageCaptureSemaphore);
 
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
 
-        filterProgram = [[GPUImageContext sharedImageProcessingContext] programForVertexShaderString:vertexShaderString fragmentShaderString:fragmentShaderString];
+        strongself->filterProgram = [[GPUImageContext sharedImageProcessingContext] programForVertexShaderString:vertexShaderString fragmentShaderString:fragmentShaderString];
         
-        if (!filterProgram.initialized)
+        if (!strongself->filterProgram.initialized)
         {
-            [self initializeAttributes];
+            [strongself initializeAttributes];
             
-            if (![filterProgram link])
+            if (![strongself->filterProgram link])
             {
-                NSString *progLog = [filterProgram programLog];
+                NSString *progLog = [strongself->filterProgram programLog];
                 NSLog(@"Program link log: %@", progLog);
-                NSString *fragLog = [filterProgram fragmentShaderLog];
+                NSString *fragLog = [strongself->filterProgram fragmentShaderLog];
                 NSLog(@"Fragment shader compile log: %@", fragLog);
-                NSString *vertLog = [filterProgram vertexShaderLog];
+                NSString *vertLog = [strongself->filterProgram vertexShaderLog];
                 NSLog(@"Vertex shader compile log: %@", vertLog);
-                filterProgram = nil;
+                strongself->filterProgram = nil;
                 NSAssert(NO, @"Filter shader link failed");
             }
         }
         
-        filterPositionAttribute = [filterProgram attributeIndex:@"position"];
-        filterTextureCoordinateAttribute = [filterProgram attributeIndex:@"inputTextureCoordinate"];
-        filterInputTextureUniform = [filterProgram uniformIndex:@"inputImageTexture"]; // This does assume a name of "inputImageTexture" for the fragment shader
+        strongself->filterPositionAttribute = [strongself->filterProgram attributeIndex:@"position"];
+        strongself->filterTextureCoordinateAttribute = [strongself->filterProgram attributeIndex:@"inputTextureCoordinate"];
+        strongself->filterInputTextureUniform = [strongself->filterProgram uniformIndex:@"inputImageTexture"]; // This does assume a name of "inputImageTexture" for the fragment shader
         
-        [GPUImageContext setActiveShaderProgram:filterProgram];
+        [GPUImageContext setActiveShaderProgram:strongself->filterProgram];
         
-        glEnableVertexAttribArray(filterPositionAttribute);
-        glEnableVertexAttribArray(filterTextureCoordinateAttribute);    
+        glEnableVertexAttribArray(strongself->filterPositionAttribute);
+        glEnableVertexAttribArray(strongself->filterTextureCoordinateAttribute);    
     });
     
     return self;

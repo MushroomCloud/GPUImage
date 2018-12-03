@@ -95,10 +95,11 @@ NSString *const kGPUImageDirectionalNonmaximumSuppressionFragmentShaderString = 
         _texelWidth = 1.0 / filterFrameSize.width;
         _texelHeight = 1.0 / filterFrameSize.height;
         
+        typeof(self) __strong strongself = self;
         runSynchronouslyOnVideoProcessingQueue(^{
-            [GPUImageContext setActiveShaderProgram:filterProgram];
-            glUniform1f(texelWidthUniform, _texelWidth);
-            glUniform1f(texelHeightUniform, _texelHeight);
+            [GPUImageContext setActiveShaderProgram:strongself->filterProgram];
+            glUniform1f(strongself->texelWidthUniform, strongself->_texelWidth);
+            glUniform1f(strongself->texelHeightUniform, strongself->_texelHeight);
         });
     }
 }

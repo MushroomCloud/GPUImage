@@ -52,12 +52,13 @@ NSString *const kGPUImageLineGeneratorFragmentShaderString = SHADER_STRING
         return nil;
     }
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        lineWidthUniform = [filterProgram uniformIndex:@"lineWidth"];
-        lineColorUniform = [filterProgram uniformIndex:@"lineColor"];
+        strongself->lineWidthUniform = [strongself->filterProgram uniformIndex:@"lineWidth"];
+        strongself->lineColorUniform = [strongself->filterProgram uniformIndex:@"lineColor"];
         
-        self.lineWidth = 1.0;
-        [self setLineColorRed:0.0 green:1.0 blue:0.0];
+        strongself.lineWidth = 1.0;
+        [strongself setLineColorRed:0.0 green:1.0 blue:0.0];
     });
     
     return self;
@@ -116,11 +117,12 @@ NSString *const kGPUImageLineGeneratorFragmentShaderString = SHADER_STRING
         }
     }
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        [GPUImageContext setActiveShaderProgram:filterProgram];
+        [GPUImageContext setActiveShaderProgram:strongself->filterProgram];
         
-        outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:[self sizeOfFBO] textureOptions:self.outputTextureOptions onlyTexture:NO];
-        [outputFramebuffer activateFramebuffer];
+        strongself->outputFramebuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:[strongself sizeOfFBO] textureOptions:strongself.outputTextureOptions onlyTexture:NO];
+        [strongself->outputFramebuffer activateFramebuffer];
         
         glClearColor(0.0, 0.0, 0.0, 0.0);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -129,7 +131,7 @@ NSString *const kGPUImageLineGeneratorFragmentShaderString = SHADER_STRING
         glBlendFunc(GL_ONE, GL_ONE);
         glEnable(GL_BLEND);
         
-        glVertexAttribPointer(filterPositionAttribute, 2, GL_FLOAT, 0, 0, lineCoordinates);
+        glVertexAttribPointer(strongself->filterPositionAttribute, 2, GL_FLOAT, 0, 0, strongself->lineCoordinates);
         glDrawArrays(GL_LINES, 0, ((unsigned int)numberOfLines * 2));
         
         glDisable(GL_BLEND);

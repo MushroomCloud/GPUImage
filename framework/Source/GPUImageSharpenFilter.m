@@ -117,18 +117,19 @@ NSString *const kGPUImageSharpenFragmentShaderString = SHADER_STRING
 
 - (void)setupFilterForSize:(CGSize)filterFrameSize;
 {
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
-        [GPUImageContext setActiveShaderProgram:filterProgram];
+        [GPUImageContext setActiveShaderProgram:strongself->filterProgram];
         
-        if (GPUImageRotationSwapsWidthAndHeight(inputRotation))
+        if (GPUImageRotationSwapsWidthAndHeight(strongself->inputRotation))
         {
-            glUniform1f(imageWidthFactorUniform, 1.0 / filterFrameSize.height);
-            glUniform1f(imageHeightFactorUniform, 1.0 / filterFrameSize.width);
+            glUniform1f(strongself->imageWidthFactorUniform, 1.0 / filterFrameSize.height);
+            glUniform1f(strongself->imageHeightFactorUniform, 1.0 / filterFrameSize.width);
         }
         else
         {
-            glUniform1f(imageWidthFactorUniform, 1.0 / filterFrameSize.width);
-            glUniform1f(imageHeightFactorUniform, 1.0 / filterFrameSize.height);
+            glUniform1f(strongself->imageWidthFactorUniform, 1.0 / filterFrameSize.width);
+            glUniform1f(strongself->imageHeightFactorUniform, 1.0 / filterFrameSize.height);
         }
     });
 }

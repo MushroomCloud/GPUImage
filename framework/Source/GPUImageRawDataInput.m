@@ -89,21 +89,22 @@
         return;
     }
 	
-	runAsynchronouslyOnVideoProcessingQueue(^{
-
-		CGSize pixelSizeOfImage = [self outputImageSize];
+    typeof(self) __strong strongself = self;
+	runAsynchronouslyOnVideoProcessingQueue(^
+    {
+		CGSize pixelSizeOfImage = [strongself outputImageSize];
     
-		for (id<GPUImageInput> currentTarget in targets)
+		for (id<GPUImageInput> currentTarget in strongself->targets)
 		{
-			NSInteger indexOfObject = [targets indexOfObject:currentTarget];
-			NSInteger textureIndexOfTarget = [[targetTextureIndices objectAtIndex:indexOfObject] integerValue];
+			NSInteger indexOfObject = [strongself->targets indexOfObject:currentTarget];
+			NSInteger textureIndexOfTarget = [[strongself->targetTextureIndices objectAtIndex:indexOfObject] integerValue];
         
 			[currentTarget setInputSize:pixelSizeOfImage atIndex:textureIndexOfTarget];
-            [currentTarget setInputFramebuffer:outputFramebuffer atIndex:textureIndexOfTarget];
+            [currentTarget setInputFramebuffer:strongself->outputFramebuffer atIndex:textureIndexOfTarget];
 			[currentTarget newFrameReadyAtTime:kCMTimeInvalid atIndex:textureIndexOfTarget];
 		}
 	
-		dispatch_semaphore_signal(dataUpdateSemaphore);
+		dispatch_semaphore_signal(strongself->dataUpdateSemaphore);
 	});
 }
 
@@ -114,20 +115,21 @@
         return;
     }
 	
+    typeof(self) __strong strongself = self;
 	runAsynchronouslyOnVideoProcessingQueue(^{
         
 		CGSize pixelSizeOfImage = [self outputImageSize];
         
-		for (id<GPUImageInput> currentTarget in targets)
+		for (id<GPUImageInput> currentTarget in strongself->targets)
 		{
-			NSInteger indexOfObject = [targets indexOfObject:currentTarget];
-			NSInteger textureIndexOfTarget = [[targetTextureIndices objectAtIndex:indexOfObject] integerValue];
+			NSInteger indexOfObject = [strongself->targets indexOfObject:currentTarget];
+			NSInteger textureIndexOfTarget = [[strongself->targetTextureIndices objectAtIndex:indexOfObject] integerValue];
             
 			[currentTarget setInputSize:pixelSizeOfImage atIndex:textureIndexOfTarget];
 			[currentTarget newFrameReadyAtTime:frameTime atIndex:textureIndexOfTarget];
 		}
         
-		dispatch_semaphore_signal(dataUpdateSemaphore);
+		dispatch_semaphore_signal(strongself->dataUpdateSemaphore);
 	});
 }
 

@@ -53,12 +53,13 @@ NSString *const kGPUImageThreeInputTextureVertexShaderString = SHADER_STRING
     
     thirdFrameTime = kCMTimeInvalid;
     
+    typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
-        filterThirdTextureCoordinateAttribute = [filterProgram attributeIndex:@"inputTextureCoordinate3"];
+        strongself->filterThirdTextureCoordinateAttribute = [strongself->filterProgram attributeIndex:@"inputTextureCoordinate3"];
         
-        filterInputTextureUniform3 = [filterProgram uniformIndex:@"inputImageTexture3"]; // This does assume a name of "inputImageTexture3" for the third input texture in the fragment shader
-        glEnableVertexAttribArray(filterThirdTextureCoordinateAttribute);
+        strongself->filterInputTextureUniform3 = [strongself->filterProgram uniformIndex:@"inputImageTexture3"]; // This does assume a name of "inputImageTexture3" for the third input texture in the fragment shader
+        glEnableVertexAttribArray(strongself->filterThirdTextureCoordinateAttribute);
     });
     
     return self;
