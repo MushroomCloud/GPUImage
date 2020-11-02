@@ -273,6 +273,17 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
     return;
 }
 
+- (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withReadyHandler:(void (^)(dispatch_block_t unlockFrameRendering, NSError *error))block
+{
+    typeof(self) __strong strongself = self;
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+        dispatch_block_t unlockFrameRendering = ^{
+            dispatch_semaphore_signal(strongself->frameRenderingSemaphore);
+        };
+        block(unlockFrameRendering, error);
+    }];
+}
+
 #pragma mark - Private Methods
 
 - (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withImageOnGPUHandler:(void (^)(NSError *error))block
