@@ -48,7 +48,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 }
 
 // Methods calling this are responsible for calling dispatch_semaphore_signal(frameRenderingSemaphore) somewhere inside the block
-- (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withImageOnGPUHandler:(void (^)(NSError *error))block;
+- (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withImageOnGPUHandler:(void (^)(CVPixelBufferRef originalFrame, NSError *error))block;
 
 @end
 
@@ -156,7 +156,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 - (void)capturePhotoAsImageProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withCompletionHandler:(void (^)(UIImage *processedImage, NSError *error))block;
 {
     typeof(self) __strong strongself = self;
-    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(CVPixelBufferRef originalFrame, NSError *error) {
         UIImage *filteredPhoto = nil;
 
         if(!error){
@@ -170,7 +170,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 
 - (void)capturePhotoAsImageProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withOrientation:(UIImageOrientation)orientation withCompletionHandler:(void (^)(UIImage *processedImage, NSError *error))block {
     typeof(self) __strong strongself = self;
-    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(CVPixelBufferRef originalFrame, NSError *error) {
         UIImage *filteredPhoto = nil;
         
         if(!error) {
@@ -187,7 +187,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 //    reportAvailableMemoryForGPUImage(@"Before Capture");
 
     typeof(self) __strong strongself = self;
-    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(CVPixelBufferRef originalFrame, NSError *error) {
         NSData *dataForJPEGFile = nil;
 
         if(!error){
@@ -211,7 +211,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 
 - (void)capturePhotoAsJPEGProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withOrientation:(UIImageOrientation)orientation withCompletionHandler:(void (^)(NSData *processedImage, NSError *error))block {
     typeof(self) __strong strongself = self;
-    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(CVPixelBufferRef originalFrame, NSError *error) {
         NSData *dataForJPEGFile = nil;
         
         if(!error) {
@@ -232,7 +232,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 - (void)capturePhotoAsPNGProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withCompletionHandler:(void (^)(NSData *processedPNG, NSError *error))block;
 {
     typeof(self) __strong strongself = self;
-    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(CVPixelBufferRef originalFrame, NSError *error) {
         NSData *dataForPNGFile = nil;
 
         if(!error){
@@ -245,7 +245,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
             dispatch_semaphore_signal(strongself->frameRenderingSemaphore);
         }
         
-        block(dataForPNGFile, error);        
+        block(dataForPNGFile, error);
     }];
     
     return;
@@ -254,7 +254,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 - (void)capturePhotoAsPNGProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withOrientation:(UIImageOrientation)orientation withCompletionHandler:(void (^)(NSData *processedPNG, NSError *error))block;
 {
     typeof(self) __strong strongself = self;
-    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(CVPixelBufferRef originalFrame, NSError *error) {
         NSData *dataForPNGFile = nil;
         
         if(!error){
@@ -273,32 +273,32 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
     return;
 }
 
-- (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withReadyHandler:(void (^)(dispatch_block_t unlockFrameRendering, NSError *error))block
+- (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withReadyHandler:(void (^)(CVPixelBufferRef originalFrame, dispatch_block_t unlockFrameRendering, NSError *error))block
 {
     typeof(self) __strong strongself = self;
-    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(NSError *error) {
+    [self capturePhotoProcessedUpToFilter:finalFilterInChain withImageOnGPUHandler:^(CVPixelBufferRef originalFrame, NSError *error) {
         dispatch_block_t unlockFrameRendering = ^{
             dispatch_semaphore_signal(strongself->frameRenderingSemaphore);
         };
-        block(unlockFrameRendering, error);
+        block(originalFrame, unlockFrameRendering, error);
     }];
 }
 
 #pragma mark - Private Methods
 
-- (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withImageOnGPUHandler:(void (^)(NSError *error))block
+- (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain withImageOnGPUHandler:(void (^)(CVPixelBufferRef originalFrame, NSError *error))block
 {
     dispatch_semaphore_wait(frameRenderingSemaphore, DISPATCH_TIME_FOREVER);
 
     if(photoOutput.isCapturingStillImage){
-        block([NSError errorWithDomain:AVFoundationErrorDomain code:AVErrorMaximumStillImageCaptureRequestsExceeded userInfo:nil]);
+        block(nil, [NSError errorWithDomain:AVFoundationErrorDomain code:AVErrorMaximumStillImageCaptureRequestsExceeded userInfo:nil]);
         return;
     }
 
     typeof(self) __strong strongself = self;
     [photoOutput captureStillImageAsynchronouslyFromConnection:[[photoOutput connections] objectAtIndex:0] completionHandler:^(CMSampleBufferRef imageSampleBuffer, NSError *error) {
         if(imageSampleBuffer == NULL){
-            block(error);
+            block(nil, error);
             return;
         }
 
@@ -349,7 +349,7 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
         CFDictionaryRef metadata = CMCopyDictionaryOfAttachments(NULL, imageSampleBuffer, kCMAttachmentMode_ShouldPropagate);
         strongself->_currentCaptureMetadata = (__bridge_transfer NSDictionary *)metadata;
 
-        block(nil);
+        block(cameraFrame, nil);
 
         strongself->_currentCaptureMetadata = nil;
     }];
