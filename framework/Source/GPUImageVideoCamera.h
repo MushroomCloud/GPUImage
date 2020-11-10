@@ -89,10 +89,10 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
  @param sessionPreset Session preset to use
  @param cameraPosition Camera to capture from
  */
-- (id)initWithSessionPreset:(NSString *)sessionPreset cameraPosition:(AVCaptureDevicePosition)cameraPosition;
+- (instancetype)initWithSessionPreset:(NSString *)sessionPreset inputCamera:(AVCaptureDevice *)inputCamera;
 
 /** Add audio capture to the session. Adding inputs and outputs freezes the capture session momentarily, so you
-    can use this method to add the audio inputs and outputs early, if you're going to set the audioEncodingTarget 
+    can use this method to add the audio inputs and outputs early, if you're going to set the audioEncodingTarget
     later. Returns YES is the audio inputs and outputs were added, or NO if they had already been added.
  */
 - (BOOL)addAudioInputsAndOutputs;
@@ -141,10 +141,6 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 /** Get the AVCaptureConnection of the source camera
  */
 - (AVCaptureConnection *)videoCaptureConnection;
-
-/** This flips between the front and rear cameras
- */
-- (void)rotateCamera;
 
 /// @name Benchmarking
 
