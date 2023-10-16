@@ -121,9 +121,13 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 - (id)init
 {
     // default to the back camera if possible
+    NSArray<AVCaptureDeviceType> *deviceTypes = [GPUImageStillCamera defaultCaptureDeviceTypes];
+    AVCaptureDeviceDiscoverySession *discovery = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypes
+                                                                                                        mediaType:AVMediaTypeVideo
+                                                                                                         position:AVCaptureDevicePositionBack];
+
     AVCaptureDevicePosition cameraPosition = AVCaptureDevicePositionBack;
-    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-    
+    NSArray<AVCaptureDevice *> *devices = discovery.devices;
     AVCaptureDevice *inputCamera = devices.firstObject;
     for (AVCaptureDevice *device in devices)
     {

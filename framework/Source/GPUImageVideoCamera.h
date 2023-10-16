@@ -150,6 +150,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 
 - (void)resetBenchmarkAverage;
 
++ (NSArray<AVCaptureDeviceType> *)defaultCaptureDeviceTypes;
 + (BOOL)isBackFacingCameraPresent;
 + (BOOL)isFrontFacingCameraPresent;
 

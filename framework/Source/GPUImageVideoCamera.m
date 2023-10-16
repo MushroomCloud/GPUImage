@@ -63,9 +63,12 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 - (instancetype)init
 {
     // default to the back camera if possible
+    NSArray<AVCaptureDeviceType> *deviceTypes = [GPUImageVideoCamera defaultCaptureDeviceTypes];
+    AVCaptureDeviceDiscoverySession *discovery = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypes
+                                                                                                        mediaType:AVMediaTypeVideo
+                                                                                                         position:AVCaptureDevicePositionUnspecified];
     AVCaptureDevicePosition cameraPosition = AVCaptureDevicePositionBack;
-    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-    
+    NSArray<AVCaptureDevice *> *devices = discovery.devices;
     AVCaptureDevice *inputCamera = devices.firstObject;
     for (AVCaptureDevice *device in devices)
     {
@@ -401,17 +404,27 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     return [[videoInput device] position];
 }
 
-+ (BOOL)isBackFacingCameraPresent;
++ (NSArray<AVCaptureDeviceType> *)defaultCaptureDeviceTypes
 {
-	NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-	
-	for (AVCaptureDevice *device in devices)
-	{
-		if ([device position] == AVCaptureDevicePositionBack)
-			return YES;
-	}
-	
-	return NO;
+    NSMutableArray<AVCaptureDeviceType> *deviceTypes = [NSMutableArray arrayWithObjects:
+        AVCaptureDeviceTypeBuiltInWideAngleCamera,
+        AVCaptureDeviceTypeBuiltInTelephotoCamera,
+        nil
+    ];
+    if (@available(iOS 13.0, macCatalyst 14.0, tvOS 17.0, *))
+    {
+        [deviceTypes addObject:AVCaptureDeviceTypeBuiltInUltraWideCamera];
+    }
+    return deviceTypes;
+}
+
++ (BOOL)isBackFacingCameraPresent
+{
+    NSArray<AVCaptureDeviceType> *deviceTypes = [[self class] defaultCaptureDeviceTypes];
+    AVCaptureDeviceDiscoverySession *discovery = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypes
+                                                                                                        mediaType:AVMediaTypeVideo
+                                                                                                         position:AVCaptureDevicePositionBack];
+    return discovery.devices.count > 0;
 }
 
 - (BOOL)isBackFacingCameraPresent
@@ -419,17 +432,13 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     return [GPUImageVideoCamera isBackFacingCameraPresent];
 }
 
-+ (BOOL)isFrontFacingCameraPresent;
++ (BOOL)isFrontFacingCameraPresent
 {
-	NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-	
-	for (AVCaptureDevice *device in devices)
-	{
-		if ([device position] == AVCaptureDevicePositionFront)
-			return YES;
-	}
-	
-	return NO;
+    NSArray<AVCaptureDeviceType> *deviceTypes = [[self class] defaultCaptureDeviceTypes];
+    AVCaptureDeviceDiscoverySession *discovery = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypes
+                                                                                                        mediaType:AVMediaTypeVideo
+                                                                                                         position:AVCaptureDevicePositionFront];
+    return discovery.devices.count > 0;
 }
 
 - (BOOL)isFrontFacingCameraPresent

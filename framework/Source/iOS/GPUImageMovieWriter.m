@@ -195,7 +195,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
     if (outputSettings == nil) 
     {
         NSMutableDictionary *settings = [[NSMutableDictionary alloc] init];
-        [settings setObject:AVVideoCodecH264 forKey:AVVideoCodecKey];
+        [settings setObject:AVVideoCodecTypeH264 forKey:AVVideoCodecKey];
         [settings setObject:[NSNumber numberWithInt:videoSize.width] forKey:AVVideoWidthKey];
         [settings setObject:[NSNumber numberWithInt:videoSize.height] forKey:AVVideoHeightKey];
         outputSettings = settings;
