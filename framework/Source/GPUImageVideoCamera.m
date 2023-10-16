@@ -155,6 +155,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
     }
     else
     {
+        captureAsYUV = NO;
         [videoOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_32BGRA] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
     }
     
