@@ -51,6 +51,7 @@ void setColorConversion709( GLfloat conversionMatrix[9] )
 @synthesize captureSessionPreset = _captureSessionPreset;
 @synthesize captureSession = _captureSession;
 @synthesize inputCamera = _inputCamera;
+@synthesize videoOutput;
 @synthesize runBenchmark = _runBenchmark;
 @synthesize outputImageOrientation = _outputImageOrientation;
 @synthesize delegate = _delegate;
