@@ -80,6 +80,10 @@ void setColorConversion709( GLfloat conversionMatrix[9] );
 /// These properties determine whether or not the two camera orientations should be mirrored. By default, both are NO.
 @property(readwrite, nonatomic) BOOL horizontallyMirrorFrontFacingCamera, horizontallyMirrorRearFacingCamera;
 
+/// Explicitly override the rotation mode. Note that this will interfere with the values set for outputImageOrientation,
+/// horizontallyMirrorFrontFacingCamera, and horizontallyMirrorRearFacingCamera.
+@property(readwrite, nonatomic) GPUImageRotationMode rotationMode;
+
 @property(nonatomic, assign) id<GPUImageVideoCameraDelegate> delegate;
 
 /// @name Initialization and teardown

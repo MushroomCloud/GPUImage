@@ -79,6 +79,8 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
 - (void)capturePhotoProcessedUpToFilter:(GPUImageOutput<GPUImageInput> *)finalFilterInChain
                   withImageOnGPUHandler:(void (^)(AVCapturePhoto *photo, NSError *error))block;
 
+- (GPUImageRotationMode)requiredRotationModeForPhoto:(AVCapturePhoto *)photo;
+
 @end
 
 @implementation GPUImageStillCamera {
@@ -386,6 +388,28 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
             return;
         }
 
+        // The orientation of the captured image doesn't always match the orientation of the sample buffers returned by
+        // the live stream. Specifically, continuity cameras, and the landscape cameras on the `iPad16,{3,4,5,6}` have
+        // started doing this for some reason. To get around it, we need to check for the actual orientation in the
+        // photo metadata and make sure that the rotation mode is updated to reflect that
+        GPUImageRotationMode originalRotation = strongself.rotationMode;
+        GPUImageRotationMode fixedRotation = [strongself requiredRotationModeForPhoto:photo];
+        BOOL shouldFixTransform = originalRotation != fixedRotation;;
+        void(^updateToFixedOrientation)(void) = ^(void)
+        {
+            if (shouldFixTransform)
+            {
+                [strongself setRotationMode:fixedRotation];
+            }
+        };
+        void(^revertToOriginalOrientation)(void) = ^(void)
+        {
+            if (shouldFixTransform)
+            {
+                [strongself setRotationMode:originalRotation];
+            }
+        };
+
         CGSize sizeOfPhoto = CGSizeMake(CVPixelBufferGetWidth(cameraFrame), CVPixelBufferGetHeight(cameraFrame));
         CGSize scaledImageSizeToFitOnGPU = [GPUImageContext sizeThatFitsWithinATextureForSize:sizeOfPhoto];
         if (!CGSizeEqualToSize(sizeOfPhoto, scaledImageSizeToFitOnGPU))
@@ -402,10 +426,13 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
             }
 
             dispatch_semaphore_signal(strongself->frameRenderingSemaphore);
+            // Make sure to only do this while holding the frame rendering semaphore
+            updateToFixedOrientation();
             [finalFilterInChain useNextFrameForImageCapture];
-            [self captureOutput:strongself->_photoOutput
+            [strongself captureOutput:strongself->_photoOutput
           didOutputSampleBuffer:sampleBuffer
                  fromConnection:[[strongself->_photoOutput connections] objectAtIndex:0]];
+            revertToOriginalOrientation();
             dispatch_semaphore_wait(strongself->frameRenderingSemaphore, DISPATCH_TIME_FOREVER);
             
             if (sampleBuffer != NULL)
@@ -440,10 +467,13 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
                 }
 
                 dispatch_semaphore_signal(strongself->frameRenderingSemaphore);
+                // Make sure to only do this while holding the frame rendering semaphore
+                updateToFixedOrientation();
                 [finalFilterInChain useNextFrameForImageCapture];
-                [self captureOutput:strongself->_photoOutput
+                [strongself captureOutput:strongself->_photoOutput
               didOutputSampleBuffer:imageSampleBuffer
                      fromConnection:[[strongself->_photoOutput connections] objectAtIndex:0]];
+                revertToOriginalOrientation();
                 dispatch_semaphore_wait(strongself->frameRenderingSemaphore, DISPATCH_TIME_FOREVER);
 
                 if (imageSampleBuffer != NULL)
@@ -456,7 +486,79 @@ void GPUImageCreateResizedSampleBuffer(CVPixelBufferRef cameraFrame, CGSize fina
         block(photo, nil);
     }];
     retainedDelegate = delegate;
+
+    AVCaptureConnection *videoConnection = [_photoOutput connectionWithMediaType:AVMediaTypeVideo];
+    AVCaptureVideoOrientation videoOrientation =
+        [self videoOrientationForPhotoOutputWithVideoConnection:videoConnection];
+    [videoConnection setVideoOrientation:videoOrientation];
     [_photoOutput capturePhotoWithSettings:settings delegate:delegate];
+}
+
+- (AVCaptureVideoOrientation)videoOrientationForPhotoOutputWithVideoConnection:(AVCaptureConnection *)videoConnection
+{
+    AVCaptureDevice *device = videoInput.device;
+    if (@available(iOS 16.0, *))
+    {
+        if ([device isContinuityCamera])
+        {
+            // Continuity camera always returns photos in this the correct orientation. In order to have the EXIF image
+            // orientation set correctly, we need to return landscape right for these cameras
+            return AVCaptureVideoOrientationLandscapeRight;
+        }
+    }
+    // TODO: determine correct orientation for devices with deviceType == AVCaptureDeviceTypeExternal
+    switch (self.outputImageOrientation)
+    {
+        case UIInterfaceOrientationPortrait:
+        {
+            return AVCaptureVideoOrientationPortrait;
+        }
+        case UIInterfaceOrientationPortraitUpsideDown:
+        {
+            return AVCaptureVideoOrientationPortraitUpsideDown;
+        }
+        case UIInterfaceOrientationLandscapeLeft:
+        {
+            return AVCaptureVideoOrientationLandscapeLeft;
+        }
+        case UIInterfaceOrientationLandscapeRight:
+        {
+            return AVCaptureVideoOrientationLandscapeRight;
+        }
+        default:
+        {
+            return videoConnection.videoOrientation;
+        }
+    }
+}
+
+- (GPUImageRotationMode)requiredRotationModeForPhoto:(AVCapturePhoto *)photo
+{
+    NSNumber *orientationNumber = photo.metadata[(id)kCGImagePropertyOrientation];
+    if ([orientationNumber isKindOfClass:[NSNumber class]])
+    {
+        BOOL isFrontCamera = videoInput.device.position == AVCaptureDevicePositionFront;
+        BOOL isBackCamera = videoInput.device.position == AVCaptureDevicePositionBack;
+        CGImagePropertyOrientation orientation = [orientationNumber intValue];
+
+        // This matches the switch statement in -[GPUImageVideoCamera updateOrientationSendToTargets]
+        switch (orientation)
+        {
+            case kCGImagePropertyOrientationUp: return kGPUImageNoRotation;
+            case kCGImagePropertyOrientationUpMirrored: return kGPUImageFlipHorizonal;
+
+            case kCGImagePropertyOrientationDown: return kGPUImageRotate180;
+            case kCGImagePropertyOrientationDownMirrored: return kGPUImageFlipVertical;
+
+            case kCGImagePropertyOrientationLeft: return kGPUImageRotateLeft;
+            case kCGImagePropertyOrientationLeftMirrored: return kGPUImageRotateRightFlipHorizontal;
+
+            case kCGImagePropertyOrientationRight: return kGPUImageRotateRight;
+            case kCGImagePropertyOrientationRightMirrored: return kGPUImageRotateRightFlipVertical;
+        }
+    }
+
+    return self.rotationMode;
 }
 
 @end
