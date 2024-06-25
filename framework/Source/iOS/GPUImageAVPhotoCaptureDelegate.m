@@ -7,7 +7,6 @@
 //
 
 #import "GPUImageAVPhotoCaptureDelegate.h"
-#import "GPUImageOutput.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -33,10 +32,7 @@ NS_ASSUME_NONNULL_END
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error
 {
-    runAsynchronouslyOnVideoProcessingQueue(^
-    {
-        self.callback(photo, error);
-    });
+    self.callback(photo, error);
 }
 
 @end
