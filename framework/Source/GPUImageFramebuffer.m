@@ -12,6 +12,7 @@
 #endif
     NSUInteger framebufferReferenceCount;
     BOOL referenceCountingDisabled;
+    BOOL framebufferGenerationFailed;
 }
 
 - (void)generateFramebuffer;
@@ -156,6 +157,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size);
             {
                 NSLog(@"FBO size: %f, %f", strongself->_size.width, strongself->_size.height);
                 NSAssert(NO, @"Error at CVPixelBufferCreate %d", err);
+                strongself->framebufferGenerationFailed = YES; // Assertions are compiled out of Release builds, so remember the failure
             }
             
             err = CVOpenGLESTextureCacheCreateTextureFromImage(
@@ -174,6 +176,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size);
             if (err)
             {
                 NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err);
+                strongself->framebufferGenerationFailed = YES;
             }
             
             CFRelease(attrs);
@@ -289,6 +292,11 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size);
     framebufferReferenceCount--;
     if (framebufferReferenceCount < 1)
     {
+        if (framebufferGenerationFailed)
+        {
+            return; // A framebuffer that failed to generate must not be recycled, let it be deallocated instead
+        }
+        
         [[GPUImageContext sharedFramebufferCache] returnFramebufferToCache:self];
     }
 }
@@ -331,7 +339,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
     NSAssert(self.textureOptions.internalFormat == GL_RGBA, @"For conversion to a CGImage the output texture format for this filter must be GL_RGBA.");
     NSAssert(self.textureOptions.type == GL_UNSIGNED_BYTE, @"For conversion to a CGImage the type of the output texture of this filter must be GL_UNSIGNED_BYTE.");
     
-    __block CGImageRef cgImageFromBytes;
+    __block CGImageRef cgImageFromBytes = NULL;
     
     typeof(self) __strong strongself = self;
     runSynchronouslyOnVideoProcessingQueue(^{
@@ -346,6 +354,13 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
         if ([GPUImageContext supportsFastTextureUpload])
         {
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
+            if ((strongself->renderTarget == NULL) || strongself->framebufferGenerationFailed)
+            {
+                // The framebuffer has no usable pixel buffer to read from (its generation failed), so there is no image to return
+                [strongself unlock]; // Release the lock taken for the image capture, nothing else has been set up that the data provider callback would need to undo
+                return;
+            }
+            
             NSUInteger paddedWidthOfImage = CVPixelBufferGetBytesPerRow(strongself->renderTarget) / 4.0;
             NSUInteger paddedBytesForImage = paddedWidthOfImage * (int)strongself->_size.height * 4;
             
